@@ -4,17 +4,29 @@
 
 db=""
 first_menu() {
+	echo "---------------------------"
 	echo "1. Create new database"
 	echo "2. Log in existing database"
-	echo "3. Quit"
+	echo "3. Delete database"
+	echo "4. Exit"
+	echo "---------------------------"
 }
 menu() {
+	echo "--------------------------"
 	echo "1. Select data from tables"
 	echo "2. Delete data from tables"
 	echo "3. Insert data into tables"
 	echo "4. Edit data"
 	echo "5. Show table"
 	echo "6. Back"
+	echo "--------------------------"
+}
+delete_db(){
+	echo "Name of database you want to delete"
+	read name_database
+	rm "$name_database.database"
+	sleep 3s
+	echo "You delete $name_database succesfully"
 }
 insert() {
 
@@ -24,6 +36,8 @@ insert() {
 	ID=$(($ID + 1))
 	echo -n "** $ID      " >> "$db_name"
 	#Insert values for table with one row lenght - 8 characters
+	names_of_fields=$(sed -n '3p' "$db_name")
+	echo "$names_of_fields"
 	read podatak1
         if [ -z "podatak1" ];then
                 podatak1="        "
@@ -77,27 +91,18 @@ create_table(){
 	#Read what are column names and put in table with - 8 characters max
 	echo "What are names of fields?"
 	read unos1
-	if [ -z "unos1" ];then
-		unos1="        "
-	fi
 	read unos2
-	if [ -z "unos2" ];then
-                unos2="        "
-	fi
 	read unos3
-	if [ -z "unos3" ];then
-                unos3="        "
-	fi
+
 	echo -n "** ID     " >> "$db"
-	for unos in "$unos1"; do                
-	      	printf "*""%-8.8s" " $unos1 "  >> "$db"
-	done
-	for unos in "$unos2"; do
-                printf "*""%-8.8s" " $unos2 "  >> "$db"
-        done
-	for unos in "$unos3"; do                       
-                printf "*""%-8.8s" " $unos3 "  >> "$db"
-        done
+	for unos in "$unos1" "$unos2" "$unos3"; do
+    if [ -z "$unos" ]; then
+        unos="        "
+    else
+        unos=" ${unos:0:7}"
+    fi
+    printf "*%-8s" "$unos" >> "$db"
+done
 	echo "**" >> "$db"
 }
 login_db() {
@@ -204,22 +209,15 @@ edit_data() {
 	return
 	fi
 	
-	echo "Enter new value for column '$which_data':" #### ovde treba namestiti zvezzdice i to
+	echo "Enter new value for column '$which_data':" 
 	read new_value
 	line_number=$(grep -n "^** $id_edit[[:space:]]" "$db_name" | cut -d: -f1)
 	if [ -z "$line_number" ]; then
    		 echo "ID not found."
     		return
-	fi ####
-	# Update the table ### KAD EDITUJEM TREBA NAMESTITI DA BUDE MAX 8 karaktera i da razmakne posle broj ID jos razmake da napravi da se poravna
-	# TREBA NAMESTITI
-#	awk -v row="$line_number" -v col="$column_position" -v val="$new_value" -F' \\ *' '
-#NR == row {$col = val}1' OFS=" " "$db_name" > temp.txt && mv temp.txt "$db_name"
-#}
-
-
-
-    awk -F'\\*' -v row="$line_number" -v col="$column_position" -v val="$new_value" '
+	fi
+    
+	awk -F'\\*' -v row="$line_number" -v col="$column_position" -v val="$new_value" '
     NR == row {
         gsub(/^ +| +$/, "", $col)     # strip spaces
         val = " " substr(val, 1, 7)        # first char space, then max 7 of your text
@@ -241,7 +239,9 @@ pocetni_meni() {
 				;;
 			2)	login_db
 				;;
-			3)	sleep 1s
+			3)	delete_db
+				;;
+			4)	sleep 1s
 				exit
 				;;	
 		esac

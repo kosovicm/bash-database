@@ -146,7 +146,6 @@ search_by_field() {
 	#Find third line of database and removes whitespaces and split into array using "*" to separate
 	naslov_field=$(sed -n '3p' "$db_name" | xargs)
 	IFS='*' read -ra columns <<< "$naslov_field"
-	
 	#Loop throw columns and finding where is the field we looking for and save that position in "column_position"
 	column_position=-1
 	for i in "${!columns[@]}"; do
@@ -168,6 +167,8 @@ search_by_field() {
 edit_data() {
 	echo "Which ID want to edit?"
 	read id_edit
+	names_of_fields=$(sed -n '3p' "$db_name")
+
 	#This script prompts the user to input an ID, checks if it's a valid number, and then searches for the corresponding record in the database
         	if [[ "$id_edit" =~ ^[0-9]+$ ]]; then
         	result_edit=$(awk -F'\*\*\ ' -v  id="$id_edit" '$2 ~ "^"id {print $0}' "$db_name")
@@ -180,6 +181,7 @@ edit_data() {
                 fi
 
 	echo "Which column you want to edit?"
+	echo "$names_of_fields"
 	read which_data
 	
 	naslov_edit=$(sed -n '3p' "$db_name" | xargs)
@@ -204,15 +206,30 @@ edit_data() {
 	
 	echo "Enter new value for column '$which_data':" #### ovde treba namestiti zvezzdice i to
 	read new_value
-	line_number=$(grep -n "^** $id_edit" "$db_name" | cut -d: -f1)
+	line_number=$(grep -n "^** $id_edit[[:space:]]" "$db_name" | cut -d: -f1)
 	if [ -z "$line_number" ]; then
    		 echo "ID not found."
     		return
 	fi ####
 	# Update the table ### KAD EDITUJEM TREBA NAMESTITI DA BUDE MAX 8 karaktera i da razmakne posle broj ID jos razmake da napravi da se poravna
 	# TREBA NAMESTITI
-	awk -v row="$line_number" -v col="$column_position" -v val="$new_value" -F' \\ *' '
-NR == row {$col = val}1' OFS=" " "$db_name" > temp.txt && mv temp.txt "$db_name"
+#	awk -v row="$line_number" -v col="$column_position" -v val="$new_value" -F' \\ *' '
+#NR == row {$col = val}1' OFS=" " "$db_name" > temp.txt && mv temp.txt "$db_name"
+#}
+
+
+
+    awk -F'\\*' -v row="$line_number" -v col="$column_position" -v val="$new_value" '
+    NR == row {
+        gsub(/^ +| +$/, "", $col)     # strip spaces
+        val = " " substr(val, 1, 7)        # first char space, then max 7 of your text
+    	$col = sprintf("%-8s", val)        # pad to 8 chars if shorter
+	}
+    
+    {
+        OFS="*"
+        print
+    }' "$db_name" > temp.txt && mv temp.txt "$db_name"
 }
 
 pocetni_meni() {
